@@ -73,7 +73,7 @@ public abstract class BananaGamer extends StateMachineGamer
 		long start = System.currentTimeMillis();//start of legal gamer
 		List<Move> moves = getStateMachine().getLegalMoves(getCurrentState(), getRole());
 		Move selection = moves.get(0);
-		//selection = getBestMove(getCurrentState(),move);
+		selection = getBestMove(getCurrentState(),moves);
 		long stop = System.currentTimeMillis();
 		notifyObservers(new GamerSelectedMoveEvent(moves, selection, stop - start));
 		return selection;
