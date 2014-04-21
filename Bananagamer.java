@@ -24,7 +24,7 @@ import org.ggp.base.util.statemachine.implementation.prover.ProverStateMachine;
  * If you want to quickly create a gamer of your own, extend this class and
  * add the last core function : public Move stateMachineSelectMove(long timeout)
  */
-
+//test to see if this works
 public abstract class BananaGamer extends StateMachineGamer
 {
 	@Override
