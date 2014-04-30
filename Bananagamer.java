@@ -1,4 +1,3 @@
-package org.ggp.base.player.gamer.statemachine.sample;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,27 +10,29 @@ import org.ggp.base.player.gamer.statemachine.StateMachineGamer;
 import org.ggp.base.util.game.Game;
 import org.ggp.base.util.statemachine.MachineState;
 import org.ggp.base.util.statemachine.Move;
+import org.ggp.base.util.statemachine.Role;//imported this
 import org.ggp.base.util.statemachine.StateMachine;
+import org.ggp.base.util.statemachine.cache.CachedStateMachine;
 import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 import org.ggp.base.util.statemachine.implementation.prover.ProverStateMachine;
 
-/**
- * SampleGamer is a simplified version of the StateMachineGamer, dropping some
- * advanced functionality so the example gamers can be presented concisely.
- * This class implements 7 of the 8 core functions that need to be implemented
- * for any gamer.
- *
- * If you want to quickly create a gamer of your own, extend this class and
- * add the last core function : public Move stateMachineSelectMove(long timeout)
- */
 
-public abstract class BananaGamer extends StateMachineGamer
+
+
+
+public class BananaGamer extends StateMachineGamer
 {
+
+	private static Role opponent;
+	private static final int perfectScore = 100;
+	private int alpha = 0;
+	private int beta = 100;
 	@Override
 	public void stateMachineMetaGame(long timeout) throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException
 	{
+		System.out.println(getCurrentState());
 		//		long currentTime = System.currentTimeMillis();
 		//		long finishBy = timeout - 1000;
 		//
@@ -53,27 +54,17 @@ public abstract class BananaGamer extends StateMachineGamer
 		//				break;
 		//		}
 		//		System.out.println("Metagaming done. Nb states explored " + nbStatesExplored);
+		for(Role role: getStateMachine().getRoles()){//finds opponent role
+			if(role != getRole())
+				opponent = role;
+		}
 	}
 	@Override
 	public Move stateMachineSelectMove(long timeout) throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException
 	{
-		//		long start = System.currentTimeMillis();//taken from RandomGamer.java random gamer
-		//		//for nonrandom legal move take code from SampleLegalGamer.java
-		//
-		//		List<Move> moves = getStateMachine().getLegalMoves(getCurrentState(), getRole());
-		//		Move selection = (moves.get(new Random().nextInt(moves.size())));
-		//
-		//		long stop = System.currentTimeMillis();
-		//
-		//		notifyObservers(new GamerSelectedMoveEvent(moves, selection, stop - start));
-		//		return selection;//end
-
-
-
 		long start = System.currentTimeMillis();//start of legal gamer
 		List<Move> moves = getStateMachine().getLegalMoves(getCurrentState(), getRole());
-		Move selection = moves.get(0);
-		selection = getBestMove(getCurrentState(),moves);
+		Move selection = getBestMove(getCurrentState(),moves);
 		long stop = System.currentTimeMillis();
 		notifyObservers(new GamerSelectedMoveEvent(moves, selection, stop - start));
 		return selection;
@@ -82,33 +73,67 @@ public abstract class BananaGamer extends StateMachineGamer
 	public Move getBestMove(MachineState state, List<Move> moves) throws MoveDefinitionException, TransitionDefinitionException, GoalDefinitionException{
 		int indexSave = 0;
 		int score = 0;
+		alpha = 0;
+		beta = 100;
+		System.out.println("getBestMove");
 		for(int i = 0; i < moves.size(); i++){
-			int result = maxScore(state);
-			if(result == 100){
+			int result = minScore(getRole(),moves.get(i),state);
+			System.out.println(result + "this is the result "+ moves.get(i) +" this is the move");
+			if(result == perfectScore){
 				return moves.get(i);
 			}
 			if(result > score){
 				indexSave = i;
 				score = result;
 			}
+			System.out.println(score + "This is the score");
 		}
 		return moves.get(indexSave);
 	}
-	int maxScore(MachineState state) throws MoveDefinitionException, TransitionDefinitionException, GoalDefinitionException{
+
+	int maxScore(Role myRole,MachineState state) throws MoveDefinitionException, TransitionDefinitionException, GoalDefinitionException{
 		if (getStateMachine().isTerminal(state)) {
 			return getStateMachine().getGoal(state, getRole());
 		}
 		List<Move> moves = getStateMachine().getLegalMoves(state, getRole());
-		int score = 0;
 		for (int i = 0; i < moves.size(); i++){
-			List<Move> playerMoves = new ArrayList<Move>(); //type check ArrayList vs List
-			playerMoves.add(moves.get(i));
-			int result = maxScore(getStateMachine().getNextState(state, playerMoves));
-			if (result > score) score = result;
+			int result = minScore(getRole(),moves.get(i),state);//minmax
+			alpha = Math.max(alpha, result);
+			if (alpha>=beta) {
+				return beta;
+			}
 		}
-		return score;
+		return alpha;
 	}
 
+	int minScore(Role myRole,Move myMove, MachineState state) throws MoveDefinitionException, TransitionDefinitionException, GoalDefinitionException{
+		List<Move> opponentMoves = getStateMachine().getLegalMoves(state,opponent);
+		//int currentLowestScore = perfectScore; //minmax
+		for(int i = 0; i < opponentMoves.size(); i++){
+			Move opponentMove = opponentMoves.get(i);
+			List<Move> jointMove = new ArrayList<Move>();
+			if( myRole == getStateMachine().getRoles().get(0)){
+				jointMove.add(myMove);
+				jointMove.add(opponentMove);
+			}else{
+				jointMove.add(opponentMove);
+				jointMove.add(myMove);
+			}
+			//System.out.println("min");
+			MachineState nextState = getStateMachine().getNextState(state,jointMove);
+			int nextStateScore = maxScore(getRole(),nextState);
+			beta = Math.min(beta, nextStateScore);
+			if (beta <= alpha) return alpha;
+//			//if(nextStateScore == 0){//minmax
+//			//	return 0;
+//			//}
+			//if(nextStateScore < currentLowestScore){//minmax
+			//	currentLowestScore = nextStateScore;
+			//}
+		}
+		//return currentLowestScore;//minmax
+		return beta;
+	}
 
 	@Override
 	public String getName() {
@@ -118,7 +143,8 @@ public abstract class BananaGamer extends StateMachineGamer
 	// This is the default State Machine
 	@Override
 	public StateMachine getInitialStateMachine() {//hash map from moves to machine states?
-		return new ProverStateMachine();
+		return new CachedStateMachine(new ProverStateMachine());
+		//return new ProverStateMachine();
 	}
 
 	// This is the default Sample Panel
