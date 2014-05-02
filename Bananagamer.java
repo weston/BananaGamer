@@ -15,7 +15,7 @@ import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 import org.ggp.base.util.statemachine.implementation.prover.ProverStateMachine;
 
 
-
+//hello
 
 
 public class Minimax extends StateMachineGamer{
