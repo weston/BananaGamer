@@ -18,14 +18,14 @@ import org.ggp.base.util.statemachine.implementation.prover.ProverStateMachine;
 
 
 
-public class Minimax extends StateMachineGamer{
-
+public class BananaGamer extends StateMachineGamer{
+	long turntime;
+	long starttime;
+	Move bestMove;
 	private static Role opponent;
 	private static final int perfectScore = 100;
 	private int feasibility = 0;
-	private int limit = 4;
-	private static final double mobilityContribution = 0.95;
-	private static final double focusContribution = 0.05;
+	private int limit = 10;
 	@Override
 	public void stateMachineMetaGame(long timeout) throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException
 	{
@@ -52,8 +52,10 @@ public class Minimax extends StateMachineGamer{
 
 
 		//long start = System.currentTimeMillis();//start of legal gamer
+		//starttime = System.currentTimeMillis();
+		turntime = timeout - 2000;
 		List<Move> moves = getStateMachine().getLegalMoves(getCurrentState(), getRole());
-		Move selection = moves.get(0);
+		Move selection = bestMove = moves.get(0);
 		selection = getBestMove(getCurrentState());
 		//long stop = System.currentTimeMillis();
 		//notifyObservers(new GamerSelectedMoveEvent(moves, selection, stop - start));
@@ -65,6 +67,11 @@ public class Minimax extends StateMachineGamer{
 		Move moveSave = moves.get(0);
 		int score = 0;
 		for(Move move: moves){
+			System.out.println(System.currentTimeMillis() + "and" + turntime);
+			if (System.currentTimeMillis() >= turntime){ //IT'S A THREEE LINEEEEERRRRRR!!
+				System.out.println("IM FINISHING EARLY NIGGAAAAAAAAAA");
+				return moveSave;
+			}
 			int result = minScore(getRole(),move,state, 1);
 			if(result == perfectScore){
 				return move;
@@ -78,7 +85,7 @@ public class Minimax extends StateMachineGamer{
 	}
 
 	int evalfn(MachineState state, Role myRole) throws MoveDefinitionException{
-		return (int) (mobilityContribution * mobility(state, myRole) + focusContribution * focus(state, myRole));
+		return (int) (0.95 * mobility(state, myRole) + 0.05 * focus(state, myRole));
 	}
 
 	int mobility(MachineState state, Role myRole) throws MoveDefinitionException{ //IT'S A THREEEEEEE LINERRRRR!!!!!
